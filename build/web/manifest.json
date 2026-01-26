@@ -1,11 +1,11 @@
 {
-    "name": "Card Tracker - シール価格比較",
-    "short_name": "Card Tracker",
+    "name": "flutter_app",
+    "short_name": "flutter_app",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#FFFFFF",
-    "theme_color": "#000000",
-    "description": "シール・トレーディングカードの販売情報を収集・比較するアプリ",
+    "background_color": "#0175C2",
+    "theme_color": "#0175C2",
+    "description": "A new Flutter project.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

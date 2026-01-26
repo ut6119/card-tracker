@@ -182,7 +182,12 @@ class RealtimeSnsService {
   /// 地域別検索キーワードを生成
   List<String> _getRegionalKeywords(String region) {
     final regionalKeywords = <String>[];
-    final baseTerms = ['シール 入荷', 'シール 販売', 'ボンボンドロップシール'];
+    
+    // 投稿内容での検索キーワード
+    final contentTerms = ['シール 入荷', 'シール 販売', 'ボンボンドロップシール'];
+    
+    // アカウント名での検索キーワード（店舗名など）
+    final accountTerms = ['店', 'ショップ', 'ストア', 'SHOP'];
     
     // 地域ごとの都市・エリアリスト
     final regionCities = <String, List<String>>{
@@ -198,9 +203,33 @@ class RealtimeSnsService {
     
     // 選択された地域の都市でキーワードを生成
     final cities = regionCities[region] ?? [];
+    
     for (final city in cities) {
-      for (final term in baseTerms) {
+      // 1. 投稿内容での検索（例：「シール 入荷 大阪」）
+      for (final term in contentTerms) {
         regionalKeywords.add('$term $city');
+      }
+      
+      // 2. アカウント名での検索（例：「大阪 店 シール」「梅田店 シール販売」）
+      for (final accountTerm in accountTerms) {
+        regionalKeywords.add('$city$accountTerm シール');
+        regionalKeywords.add('$city シール 販売');
+      }
+    }
+    
+    // 3. 有名店舗名での検索（地域に関係なく追加）
+    final storeNames = [
+      'キディランド',
+      'ロフト',
+      'ハンズ',
+      'ドンキホーテ',
+      'ヴィレッジヴァンガード',
+      'アニメイト',
+    ];
+    
+    for (final city in cities) {
+      for (final store in storeNames) {
+        regionalKeywords.add('$city $store シール');
       }
     }
     

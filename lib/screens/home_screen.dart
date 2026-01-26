@@ -52,7 +52,7 @@ class HomeScreen extends StatelessWidget {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('✅ ${provider.filteredProducts.length}件の実データを取得しました！'),
+                                content: Text('✅ ${provider.filteredProducts.length}件のデータを取得しました！（サンリオ・たまごっち公式）'),
                                 duration: const Duration(seconds: 2),
                                 backgroundColor: Colors.green,
                               ),
@@ -81,7 +81,7 @@ class HomeScreen extends StatelessWidget {
                             )
                           : const Icon(Icons.refresh),
                       label: Text(
-                        provider.isLoading ? '取得中...' : '🔄 楽天から実データを取得',
+                        provider.isLoading ? '取得中...' : '🔄 サンリオ・たまごっち公式から取得',
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
@@ -91,7 +91,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      '※ ボタンを押すと楽天市場から最新の価格情報を取得します',
+                      '※ サンリオ・たまごっち公式サイトから商品情報を取得します',
                       style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],

@@ -4,7 +4,7 @@ import 'providers/product_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/sns_screen.dart';
-import 'screens/map_screen.dart';
+import 'screens/map_screen_simple.dart';
 import 'screens/favorites_screen.dart';
 import 'screens/profile_screen.dart';
 

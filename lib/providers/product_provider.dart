@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/card_product.dart';
 import '../services/sample_data_service.dart';
-import '../services/simple_real_data_service.dart';
+import '../services/free_data_service.dart';
 
 /// 商品データ管理プロバイダー
 /// 商品一覧、検索、フィルター、お気に入り機能を提供
@@ -67,14 +67,14 @@ class ProductProvider with ChangeNotifier {
     }
   }
   
-  /// 実データを取得して更新（楽天APIから）
+  /// 実データを取得して更新（サンリオ・たまごっち公式から）
   Future<void> fetchRealData(String keyword) async {
     _isLoading = true;
     notifyListeners();
     
     try {
-      final realDataService = SimpleRealDataService();
-      final products = await realDataService.searchRakuten(keyword);
+      final freeDataService = FreeDataService();
+      final products = await freeDataService.fetchAllProducts();
       
       if (products.isNotEmpty) {
         // 既存のデータをクリアして新しいデータに置き換え
@@ -88,7 +88,7 @@ class ProductProvider with ChangeNotifier {
         _applyFilters();
         
         if (kDebugMode) {
-          debugPrint('✅ ${products.length}件の実データを楽天から取得しました');
+          debugPrint('✅ ${products.length}件の実データを取得しました（サンリオ・たまごっち）');
         }
       } else {
         if (kDebugMode) {
@@ -105,14 +105,14 @@ class ProductProvider with ChangeNotifier {
     }
   }
   
-  /// すべてのキーワードで実データを取得
+  /// すべてのソースから実データを取得
   Future<void> fetchAllRealData() async {
     _isLoading = true;
     notifyListeners();
     
     try {
-      final realDataService = SimpleRealDataService();
-      final products = await realDataService.searchDefaultProducts();
+      final freeDataService = FreeDataService();
+      final products = await freeDataService.fetchAllProducts();
       
       if (products.isNotEmpty) {
         // 既存のデータをクリアして新しいデータに置き換え
@@ -126,7 +126,7 @@ class ProductProvider with ChangeNotifier {
         _applyFilters();
         
         if (kDebugMode) {
-          debugPrint('✅ ${products.length}件の実データを楽天から取得しました');
+          debugPrint('✅ ${products.length}件の実データを取得しました');
         }
       } else {
         if (kDebugMode) {

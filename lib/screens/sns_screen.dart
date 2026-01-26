@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/sns_post.dart';
 import '../services/sns_sample_data_service.dart';
+import '../services/free_data_service.dart';
 
 /// SNS画面
 /// X、Instagram、LINEなどのSNS情報を表示
@@ -24,22 +25,52 @@ class _SnsScreenState extends State<SnsScreen> {
   }
 
   /// SNS投稿データを読み込み
-  void _loadSnsPosts() {
+  Future<void> _loadSnsPosts() async {
     setState(() {
       _isLoading = true;
     });
 
-    // サンプルデータから読み込み
-    final jsonData = SnsSampleDataService.getSampleSnsPosts();
-    final posts = jsonData.map((json) => SnsPost.fromJson(json)).toList();
+    try {
+      // 無料データサービスから実データを取得
+      final freeDataService = FreeDataService();
+      final snsData = await freeDataService.fetchAllSNSPosts();
+      
+      // SnsPost形式に変換
+      final posts = snsData.map((json) {
+        return SnsPost(
+          id: json['id'] as String,
+          type: json['platform'] == 'X' ? SnsType.twitter : SnsType.instagram,
+          productId: json['id'] as String, // IDをproductIdとして使用
+          username: json['authorUsername'] as String,
+          content: json['content'] as String,
+          imageUrl: json['imageUrl'] as String? ?? '',
+          postUrl: json['url'] as String,
+          postedAt: DateTime.parse(json['postedAt'] as String),
+          storeName: json['storeName'] as String? ?? '',
+          location: json['location'] as String? ?? '',
+          price: (json['price'] as num?)?.toDouble(),
+          isVerified: json['verified'] as bool? ?? false,
+        );
+      }).toList();
 
-    // 投稿日時順にソート（新しい順）
-    posts.sort((a, b) => b.postedAt.compareTo(a.postedAt));
+      // 投稿日時順にソート（新しい順）
+      posts.sort((a, b) => b.postedAt.compareTo(a.postedAt));
 
-    setState(() {
-      _snsPosts = posts;
-      _isLoading = false;
-    });
+      setState(() {
+        _snsPosts = posts;
+        _isLoading = false;
+      });
+    } catch (e) {
+      // エラー時はサンプルデータを使用
+      final jsonData = SnsSampleDataService.getSampleSnsPosts();
+      final posts = jsonData.map((json) => SnsPost.fromJson(json)).toList();
+      posts.sort((a, b) => b.postedAt.compareTo(a.postedAt));
+
+      setState(() {
+        _snsPosts = posts;
+        _isLoading = false;
+      });
+    }
   }
 
   /// フィルター済みの投稿を取得

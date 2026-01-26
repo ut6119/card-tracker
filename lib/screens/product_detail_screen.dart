@@ -220,7 +220,11 @@ class _MercariSearchButton extends StatelessWidget {
     
     final uri = Uri.parse(mercariUrl);
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+        webOnlyWindowName: '_blank',
+      );
     }
   }
 }
@@ -418,7 +422,11 @@ class _PriceComparisonTable extends StatelessWidget {
                       onTap: () async {
                         final url = Uri.parse(priceInfo.url!);
                         if (await canLaunchUrl(url)) {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                          await launchUrl(
+                            url,
+                            mode: LaunchMode.externalApplication,
+                            webOnlyWindowName: '_blank',
+                          );
                         }
                       },
                       child: Padding(

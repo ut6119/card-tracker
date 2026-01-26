@@ -27,12 +27,21 @@ class _SnsScreenState extends State<SnsScreen> {
     _loadSnsPosts();
   }
   
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 画面が表示されるたびに地域設定をリロード
+    _loadLocation();
+  }
+  
   /// 現在地設定を読み込み
   Future<void> _loadLocation() async {
     final region = await LocationSettingsService.getLocation();
-    setState(() {
-      _selectedRegion = region;
-    });
+    if (mounted) {
+      setState(() {
+        _selectedRegion = region;
+      });
+    }
   }
   
   /// 現在地設定ダイアログを表示
@@ -480,7 +489,13 @@ class _SnsPostCard extends StatelessWidget {
   Future<void> _openUrl(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      // Web版: 新しいタブで開く
+      // モバイル版: 外部ブラウザで開く
+      await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+        webOnlyWindowName: '_blank', // Webで新しいタブを開く
+      );
     }
   }
 }

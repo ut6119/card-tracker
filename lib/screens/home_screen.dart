@@ -37,6 +37,37 @@ class HomeScreen extends StatelessWidget {
               
               const Divider(height: 1),
               
+              // 実データ取得ボタン
+              Container(
+                padding: const EdgeInsets.all(8),
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    // 実データを取得
+                    await provider.fetchRealData('ボンボンドロップ');
+                    await provider.fetchRealData('キラキラシール');
+                    await provider.fetchRealData('トレーディングカード');
+                    
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('最新の価格情報を取得しました！'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('最新の価格情報を取得'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 40),
+                  ),
+                ),
+              ),
+              
+              const Divider(height: 1),
+              
               // 商品リスト
               Expanded(
                 child: provider.filteredProducts.isEmpty

@@ -75,6 +75,8 @@ class _SnsScreenState extends State<SnsScreen> {
       setState(() {
         _selectedRegion = selected;
       });
+      // 地域変更後に投稿を再取得
+      await _loadSnsPosts();
     }
   }
 
@@ -85,9 +87,9 @@ class _SnsScreenState extends State<SnsScreen> {
     });
 
     try {
-      // リアルタイムでX投稿を取得
+      // リアルタイムでX投稿を取得（地域を指定）
       final realtimeService = RealtimeSnsService();
-      final realtimePosts = await realtimeService.searchSealPosts();
+      final realtimePosts = await realtimeService.searchSealPosts(region: _selectedRegion);
       
       // リアルタイム投稿をSnsPost形式に変換
       final posts = realtimePosts.map((json) {

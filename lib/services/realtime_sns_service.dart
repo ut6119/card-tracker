@@ -5,17 +5,28 @@ import 'package:flutter/foundation.dart';
 /// Yahoo!リアルタイム検索とGoogle検索を使用してX投稿を取得
 class RealtimeSnsService {
   /// シール関連のX投稿を検索
-  Future<List<Map<String, dynamic>>> searchSealPosts() async {
+  /// [region] 地域名（例：'全国', '近畿', '大阪府'）
+  Future<List<Map<String, dynamic>>> searchSealPosts({String region = '全国'}) async {
     final List<Map<String, dynamic>> allPosts = [];
     
-    // 検索キーワード
-    final keywords = [
+    // 基本検索キーワード（全国共通）
+    final baseKeywords = [
       'ボンボンドロップシール 入荷',
+      'ボンボンドロップシール 販売',
+      'シール 販売',
+      'シール 予約',
+      'シール 入荷',
       'サンリオ シール 販売',
       'たまごっち シール',
       'ディズニー ボンボンドロップ',
       'シール 入荷情報',
     ];
+    
+    // 地域別キーワードを追加
+    final keywords = List<String>.from(baseKeywords);
+    if (region != '全国') {
+      keywords.addAll(_getRegionalKeywords(region));
+    }
     
     try {
       for (final keyword in keywords) {
@@ -166,5 +177,33 @@ class RealtimeSnsService {
     }
     
     return posts;
+  }
+  
+  /// 地域別検索キーワードを生成
+  List<String> _getRegionalKeywords(String region) {
+    final regionalKeywords = <String>[];
+    final baseTerms = ['シール 入荷', 'シール 販売', 'ボンボンドロップシール'];
+    
+    // 地域ごとの都市・エリアリスト
+    final regionCities = <String, List<String>>{
+      '北海道': ['札幌', '函館', '旭川'],
+      '東北': ['青森', '仙台', '盛岡', '秋田', '山形', '福島'],
+      '関東': ['東京', '渋谷', '新宿', '池袋', '横浜', '川崎', '大宮', '千葉', '柏'],
+      '中部': ['名古屋', '静岡', '浜松', '新潟', '金沢', '長野'],
+      '近畿': ['大阪', '梅田', '難波', '京都', '神戸', '三宮', '奈良', '和歌山'],
+      '中国': ['広島', '岡山', '山口', '鳥取', '島根'],
+      '四国': ['高松', '松山', '徳島', '高知'],
+      '九州・沖縄': ['福岡', '天神', '博多', '熊本', '長崎', '鹿児島', '那覇'],
+    };
+    
+    // 選択された地域の都市でキーワードを生成
+    final cities = regionCities[region] ?? [];
+    for (final city in cities) {
+      for (final term in baseTerms) {
+        regionalKeywords.add('$term $city');
+      }
+    }
+    
+    return regionalKeywords;
   }
 }

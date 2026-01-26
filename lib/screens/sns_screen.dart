@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/sns_post.dart';
 import '../services/sns_sample_data_service.dart';
 import '../services/realtime_sns_service.dart';
+import '../services/location_settings_service.dart';
 
 /// SNS画面
 /// X、Instagram、LINEなどのSNS情報を表示
@@ -17,11 +18,55 @@ class _SnsScreenState extends State<SnsScreen> {
   SnsType? _selectedSnsType;
   List<SnsPost> _snsPosts = [];
   bool _isLoading = true;
+  String _selectedRegion = '全国';
 
   @override
   void initState() {
     super.initState();
+    _loadLocation();
     _loadSnsPosts();
+  }
+  
+  /// 現在地設定を読み込み
+  Future<void> _loadLocation() async {
+    final region = await LocationSettingsService.getLocation();
+    setState(() {
+      _selectedRegion = region;
+    });
+  }
+  
+  /// 現在地設定ダイアログを表示
+  Future<void> _showLocationDialog() async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('現在地を設定'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: LocationSettingsService.regions.length,
+            itemBuilder: (context, index) {
+              final region = LocationSettingsService.regions[index];
+              return ListTile(
+                title: Text(region),
+                trailing: _selectedRegion == region
+                    ? const Icon(Icons.check, color: Colors.black)
+                    : null,
+                onTap: () => Navigator.pop(context, region),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    
+    if (selected != null) {
+      await LocationSettingsService.saveLocation(selected);
+      setState(() {
+        _selectedRegion = selected;
+      });
+    }
   }
 
   /// SNS投稿データを読み込み
@@ -103,10 +148,23 @@ class _SnsScreenState extends State<SnsScreen> {
 
   /// フィルター済みの投稿を取得
   List<SnsPost> get _filteredPosts {
-    if (_selectedSnsType == null) {
-      return _snsPosts;
+    var posts = _snsPosts;
+    
+    // SNSタイプでフィルタ
+    if (_selectedSnsType != null) {
+      posts = posts.where((post) => post.type == _selectedSnsType).toList();
     }
-    return _snsPosts.where((post) => post.type == _selectedSnsType).toList();
+    
+    // 地域でフィルタ
+    posts = posts.where((post) {
+      return LocationSettingsService.isLocationMatch(
+        post.location,
+        post.storeName,
+        _selectedRegion,
+      );
+    }).toList();
+    
+    return posts;
   }
 
   @override
@@ -116,6 +174,12 @@ class _SnsScreenState extends State<SnsScreen> {
       appBar: AppBar(
         title: const Text('SNS情報'),
         actions: [
+          // 現在地設定ボタン
+          IconButton(
+            icon: const Icon(Icons.location_on),
+            onPressed: _showLocationDialog,
+            tooltip: '現在地設定: $_selectedRegion',
+          ),
           // 更新ボタン
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -126,6 +190,26 @@ class _SnsScreenState extends State<SnsScreen> {
       ),
       body: Column(
         children: [
+          // 現在地表示
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: Colors.grey[100],
+            child: Row(
+              children: [
+                const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(
+                  '表示地域: $_selectedRegion',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const Spacer(),
+                Text(
+                  '${_filteredPosts.length}件',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
           // SNSタイプフィルター
           _buildSnsTypeFilter(),
           const Divider(height: 1),

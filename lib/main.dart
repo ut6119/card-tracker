@@ -4,9 +4,7 @@ import 'providers/product_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/sns_screen.dart';
-import 'screens/map_screen_simple.dart';
 import 'screens/favorites_screen.dart';
-import 'screens/profile_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -68,9 +66,7 @@ class _MainScreenState extends State<MainScreen> {
     HomeScreen(),
     SearchScreen(),
     SnsScreen(),
-    MapScreen(),
     FavoritesScreen(),
-    ProfileScreen(),
   ];
 
   @override
@@ -101,19 +97,9 @@ class _MainScreenState extends State<MainScreen> {
             label: 'SNS',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
-            activeIcon: Icon(Icons.map),
-            label: 'マップ',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.favorite_outline),
             activeIcon: Icon(Icons.favorite),
             label: 'お気に入り',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'プロフィール',
           ),
         ],
       ),

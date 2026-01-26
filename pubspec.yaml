@@ -44,14 +44,7 @@ dependencies:
   # ローカルストレージ（お気に入り機能用）
   shared_preferences: 2.5.3
   
-  # 位置情報取得パッケージ（現在地機能用）
-  geolocator: ^10.1.0
-  
-  # 地図表示パッケージ（Google Maps）
-  google_maps_flutter: ^2.5.0
-  google_maps_flutter_web: ^0.5.4+2
-  
-  # URL起動パッケージ（SNSリンク用）
+  # URL起動パッケージ（SNSリンク・メルカリ検索用）
   url_launcher: ^6.2.2
 
 dev_dependencies:

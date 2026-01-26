@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/sns_post.dart';
 import '../services/sns_sample_data_service.dart';
-import '../services/free_data_service.dart';
+import '../services/realtime_sns_service.dart';
 
 /// SNS画面
 /// X、Instagram、LINEなどのSNS情報を表示
@@ -31,37 +31,55 @@ class _SnsScreenState extends State<SnsScreen> {
     });
 
     try {
-      // 無料データサービスから実データを取得
-      final freeDataService = FreeDataService();
-      final snsData = await freeDataService.fetchAllSNSPosts();
+      // リアルタイムでX投稿を取得
+      final realtimeService = RealtimeSnsService();
+      final realtimePosts = await realtimeService.searchSealPosts();
       
-      // SnsPost形式に変換
-      final posts = snsData.map((json) {
+      // リアルタイム投稿をSnsPost形式に変換
+      final posts = realtimePosts.map((json) {
         return SnsPost(
           id: json['id'] as String,
-          type: json['platform'] == 'X' ? SnsType.twitter : SnsType.instagram,
-          productId: json['id'] as String, // IDをproductIdとして使用
+          type: SnsType.twitter,
+          productId: json['id'] as String,
           username: json['authorUsername'] as String,
           content: json['content'] as String,
-          imageUrl: json['imageUrl'] as String? ?? '',
+          imageUrl: json['imageUrl'] as String?,
           postUrl: json['url'] as String,
           postedAt: DateTime.parse(json['postedAt'] as String),
-          storeName: json['storeName'] as String? ?? '',
-          location: json['location'] as String? ?? '',
+          storeName: json['storeName'] as String?,
+          location: json['location'] as String?,
           price: (json['price'] as num?)?.toDouble(),
           isVerified: json['verified'] as bool? ?? false,
         );
       }).toList();
-
+      
+      // サンプルデータも追加（実際の投稿が見つからない場合のバックアップ）
+      final sampleData = SnsSampleDataService.getSampleSnsPosts();
+      final samplePosts = sampleData.map((json) => SnsPost.fromJson(json)).toList();
+      
+      // リアルタイム投稿を優先、サンプルデータを追加
+      final allPosts = [...posts, ...samplePosts];
+      
       // 投稿日時順にソート（新しい順）
-      posts.sort((a, b) => b.postedAt.compareTo(a.postedAt));
+      allPosts.sort((a, b) => b.postedAt.compareTo(a.postedAt));
 
       setState(() {
-        _snsPosts = posts;
+        _snsPosts = allPosts;
         _isLoading = false;
       });
+      
+      // 成功メッセージ
+      if (mounted && posts.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${posts.length}件の最新投稿を取得しました'),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
-      // エラー時はサンプルデータを使用
+      // エラー時はサンプルデータのみを使用
       final jsonData = SnsSampleDataService.getSampleSnsPosts();
       final posts = jsonData.map((json) => SnsPost.fromJson(json)).toList();
       posts.sort((a, b) => b.postedAt.compareTo(a.postedAt));
@@ -70,6 +88,16 @@ class _SnsScreenState extends State<SnsScreen> {
         _snsPosts = posts;
         _isLoading = false;
       });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('最新情報の取得に失敗しました。サンプルデータを表示します。'),
+            duration: Duration(seconds: 3),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
     }
   }
 
@@ -87,6 +115,14 @@ class _SnsScreenState extends State<SnsScreen> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('SNS情報'),
+        actions: [
+          // 更新ボタン
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _isLoading ? null : _loadSnsPosts,
+            tooltip: '最新情報を取得',
+          ),
+        ],
       ),
       body: Column(
         children: [

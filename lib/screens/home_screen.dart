@@ -15,7 +15,7 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
-          'Card Tracker',
+          'シールトラッカー',
           style: TextStyle(
             fontWeight: FontWeight.w600,
             letterSpacing: 0.5,

@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => ProductProvider()..initialize(),
       child: MaterialApp(
-        title: 'Card Tracker',
+        title: 'シールトラッカー',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           // ミニマルデザインに合わせたテーマ設定

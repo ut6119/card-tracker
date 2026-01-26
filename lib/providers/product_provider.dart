@@ -2,8 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/card_product.dart';
 import '../services/sample_data_service.dart';
-import '../services/firestore_data_service.dart';
-import '../services/real_data_service.dart';
+import '../services/simple_real_data_service.dart';
 
 /// 商品データ管理プロバイダー
 /// 商品一覧、検索、フィルター、お気に入り機能を提供
@@ -68,37 +67,37 @@ class ProductProvider with ChangeNotifier {
     }
   }
   
-  /// 実データを取得して更新（楽天・Yahoo!ショッピングから）
+  /// 実データを取得して更新（楽天APIから）
   Future<void> fetchRealData(String keyword) async {
     _isLoading = true;
     notifyListeners();
     
     try {
-      final realDataService = RealDataService();
-      final products = await realDataService.fetchAllProducts(keyword);
+      final realDataService = SimpleRealDataService();
+      final products = await realDataService.searchRakuten(keyword);
       
       if (products.isNotEmpty) {
-        // 既存のデータに追加
+        // 既存のデータをクリアして新しいデータに置き換え
+        _allProducts.clear();
+        
+        // 新しいデータを追加
         final newProducts = products.map((json) => CardProduct.fromJson(json)).toList();
         _allProducts.addAll(newProducts);
-        
-        // 重複を削除
-        final uniqueProducts = <String, CardProduct>{};
-        for (var product in _allProducts) {
-          uniqueProducts[product.id] = product;
-        }
-        _allProducts = uniqueProducts.values.toList();
         
         // フィルター適用
         _applyFilters();
         
         if (kDebugMode) {
-          debugPrint('${products.length}件の実データを取得しました');
+          debugPrint('✅ ${products.length}件の実データを楽天から取得しました');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('⚠️ データが取得できませんでした');
         }
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('実データ取得エラー: $e');
+        debugPrint('❌ 実データ取得エラー: $e');
       }
     } finally {
       _isLoading = false;
@@ -106,26 +105,37 @@ class ProductProvider with ChangeNotifier {
     }
   }
   
-  /// Firestoreからデータを読み込み
-  Future<void> loadFromFirestore() async {
+  /// すべてのキーワードで実データを取得
+  Future<void> fetchAllRealData() async {
     _isLoading = true;
     notifyListeners();
     
     try {
-      final firestoreService = FirestoreDataService();
-      final products = await firestoreService.getProductsFromFirestore();
+      final realDataService = SimpleRealDataService();
+      final products = await realDataService.searchDefaultProducts();
       
       if (products.isNotEmpty) {
-        _allProducts = products.map((json) => CardProduct.fromJson(json)).toList();
+        // 既存のデータをクリアして新しいデータに置き換え
+        _allProducts.clear();
+        
+        // 新しいデータを追加
+        final newProducts = products.map((json) => CardProduct.fromJson(json)).toList();
+        _allProducts.addAll(newProducts);
+        
+        // フィルター適用
         _applyFilters();
         
         if (kDebugMode) {
-          debugPrint('Firestoreから${products.length}件のデータを読み込みました');
+          debugPrint('✅ ${products.length}件の実データを楽天から取得しました');
+        }
+      } else {
+        if (kDebugMode) {
+          debugPrint('⚠️ データが取得できませんでした');
         }
       }
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('Firestore読み込みエラー: $e');
+        debugPrint('❌ 実データ取得エラー: $e');
       }
     } finally {
       _isLoading = false;

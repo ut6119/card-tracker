@@ -40,29 +40,61 @@ class HomeScreen extends StatelessWidget {
               // 実データ取得ボタン
               Container(
                 padding: const EdgeInsets.all(8),
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    // 実データを取得
-                    await provider.fetchRealData('ボンボンドロップ');
-                    await provider.fetchRealData('キラキラシール');
-                    await provider.fetchRealData('トレーディングカード');
-                    
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('最新の価格情報を取得しました！'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('最新の価格情報を取得'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 40),
-                  ),
+                color: Colors.grey[100],
+                child: Column(
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: provider.isLoading ? null : () async {
+                        try {
+                          // 楽天APIから実データを取得
+                          await provider.fetchAllRealData();
+                          
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('✅ ${provider.filteredProducts.length}件の実データを取得しました！'),
+                                duration: const Duration(seconds: 2),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('❌ データ取得に失敗しました'),
+                                duration: Duration(seconds: 2),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: provider.isLoading 
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.refresh),
+                      label: Text(
+                        provider.isLoading ? '取得中...' : '🔄 楽天から実データを取得',
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 44),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      '※ ボタンを押すと楽天市場から最新の価格情報を取得します',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
                 ),
               ),
               

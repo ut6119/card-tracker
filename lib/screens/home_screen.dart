@@ -1,311 +1,210 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/product_provider.dart';
-import '../models/card_product.dart';
-import 'product_detail_screen.dart';
+import '../providers/tracker_provider.dart';
+import '../models/news_item.dart';
+import '../widgets/news_card.dart';
+import '../services/search_url_service.dart';
+import '../widgets/search_link_button.dart';
 
-/// ホーム画面
-/// 商品一覧とカテゴリーフィルターを表示
+/// ホーム画面（ダッシュボード）
+/// 全カテゴリの最新情報を統合表示
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          'シールトラッカー',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ),
-      body: Consumer<ProductProvider>(
+      backgroundColor: const Color(0xFFF8F8F8),
+      body: Consumer<TrackerProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading) {
             return const Center(
-              child: CircularProgressIndicator(color: Colors.black),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: Colors.black),
+                  SizedBox(height: 16),
+                  Text('最新情報を取得中...'),
+                ],
+              ),
             );
           }
 
-          return Column(
-            children: [
-              // カテゴリーフィルター
-              _CategoryFilter(),
-              
-              const Divider(height: 1),
-              
-              // 実データ取得ボタン
-              Container(
-                padding: const EdgeInsets.all(8),
-                color: Colors.grey[100],
-                child: Column(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: provider.isLoading ? null : () async {
-                        try {
-                          // 楽天APIから実データを取得
-                          await provider.fetchAllRealData();
-                          
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('✅ ${provider.filteredProducts.length}件のデータを取得しました！（サンリオ・たまごっち公式）'),
-                                duration: const Duration(seconds: 2),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('❌ データ取得に失敗しました'),
-                                duration: Duration(seconds: 2),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      icon: provider.isLoading 
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Icon(Icons.refresh),
-                      label: Text(
-                        provider.isLoading ? '取得中...' : '🔄 サンリオ・たまごっち公式から取得',
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 44),
-                      ),
+          final items = provider.allItems;
+          items.sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+
+          return RefreshIndicator(
+            onRefresh: provider.refresh,
+            color: Colors.black,
+            child: CustomScrollView(
+              slivers: [
+                // AppBar
+                SliverAppBar(
+                  floating: true,
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  elevation: 0.5,
+                  title: const Text(
+                    'ボンボン＆ガチャトラッカー',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
                     ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      '※ サンリオ・たまごっち公式サイトから商品情報を取得します',
-                      style: TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-              
-              const Divider(height: 1),
-              
-              // 商品リスト
-              Expanded(
-                child: provider.filteredProducts.isEmpty
-                    ? const Center(
-                        child: Text(
-                          '商品が見つかりませんでした',
-                          style: TextStyle(color: Colors.grey),
+                  ),
+                  actions: [
+                    if (provider.isRefreshing)
+                      const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.black,
+                          ),
                         ),
                       )
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: provider.filteredProducts.length,
-                        itemBuilder: (context, index) {
-                          final product = provider.filteredProducts[index];
-                          return _ProductListItem(product: product);
-                        },
+                    else
+                      IconButton(
+                        icon: const Icon(Icons.refresh),
+                        onPressed: provider.refresh,
+                        tooltip: '最新情報を取得',
                       ),
-              ),
-            ],
+                  ],
+                ),
+
+                // ステータスバー
+                SliverToBoxAdapter(
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    color: Colors.white,
+                    child: Row(
+                      children: [
+                        Icon(Icons.circle,
+                            size: 8,
+                            color: provider.lastError == null
+                                ? Colors.green
+                                : Colors.orange),
+                        const SizedBox(width: 6),
+                        Text(
+                          provider.lastUpdated != null
+                              ? '最終更新: ${_formatTime(provider.lastUpdated!)}'
+                              : '未更新',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${items.length}件の情報',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // クイックアクセス（Grokへのリンク）
+                SliverToBoxAdapter(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Grokに聞く（AI要約）',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SearchLinkGrid(
+                          links: [
+                            SearchLink(
+                              label: 'ボンボンドロップ',
+                              url: SearchUrlService.grokSearchUrl(
+                                  'ボンボンドロップシール 入荷 販売 最新'),
+                              source: SourceType.grok,
+                            ),
+                            SearchLink(
+                              label: 'たまごっちガチャ',
+                              url: SearchUrlService.grokSearchUrl(
+                                  'たまごっち ガチャガチャ 新作 最新'),
+                              source: SourceType.grok,
+                            ),
+                            SearchLink(
+                              label: 'ズートピアガチャ',
+                              url: SearchUrlService.grokSearchUrl(
+                                  'ズートピア ガチャガチャ 新作 最新'),
+                              source: SourceType.grok,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 情報フィード
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Text(
+                      '最新情報',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ニュースカードリスト
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final item = items[index];
+                        return NewsCard(
+                          item: item,
+                          showCategory: true,
+                          isFavorite: provider.isFavorite(item.id),
+                          onFavoriteToggle: () =>
+                              provider.toggleFavorite(item.id),
+                        );
+                      },
+                      childCount: items.length,
+                    ),
+                  ),
+                ),
+
+                // 余白
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 80),
+                ),
+              ],
+            ),
           );
         },
       ),
     );
   }
-}
 
-/// カテゴリーフィルターウィジェット
-class _CategoryFilter extends StatelessWidget {
-  final List<String> categories = const [
-    'すべて',
-    'ボンボンドロップ',
-    'キラキラシール',
-    'アニメシール',
-    'レトロシール',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<ProductProvider>(
-      builder: (context, provider, child) {
-        return Container(
-          height: 50,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              final category = categories[index];
-              final isSelected = provider.selectedCategory == category;
-              
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: FilterChip(
-                  label: Text(category),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (selected) {
-                      provider.setCategory(category);
-                    }
-                  },
-                  backgroundColor: Colors.white,
-                  selectedColor: Colors.black,
-                  checkmarkColor: Colors.white,
-                  labelStyle: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black,
-                    fontSize: 13,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(
-                      color: isSelected ? Colors.black : Colors.grey.shade300,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// 商品リストアイテム
-class _ProductListItem extends StatelessWidget {
-  final CardProduct product;
-
-  const _ProductListItem({required this.product});
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<ProductProvider>(
-      builder: (context, provider, child) {
-        final isFavorite = provider.isFavorite(product.id);
-        
-        return InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ProductDetailScreen(product: product),
-              ),
-            );
-          },
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 商品画像
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(4),
-                    image: DecorationImage(
-                      image: NetworkImage(product.imageUrl),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                
-                const SizedBox(width: 12),
-                
-                // 商品情報
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // カテゴリー
-                      Text(
-                        product.category,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      
-                      // 商品名
-                      Text(
-                        product.name,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 8),
-                      
-                      // 価格情報
-                      Row(
-                        children: [
-                          Text(
-                            '¥${product.lowestPrice.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '〜',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                      // 店舗数
-                      Text(
-                        '${product.prices.length}店舗',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // お気に入りボタン
-                IconButton(
-                  icon: Icon(
-                    isFavorite ? Icons.favorite : Icons.favorite_outline,
-                    color: isFavorite ? Colors.red : Colors.grey,
-                  ),
-                  onPressed: () {
-                    provider.toggleFavorite(product.id);
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  String _formatTime(DateTime time) {
+    final now = DateTime.now();
+    final diff = now.difference(time);
+    if (diff.inMinutes < 1) return 'たった今';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}分前';
+    if (diff.inHours < 24) return '${diff.inHours}時間前';
+    return '${time.month}/${time.day} ${time.hour}:${time.minute.toString().padLeft(2, '0')}';
   }
 }

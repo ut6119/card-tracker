@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'providers/product_provider.dart';
+import 'providers/tracker_provider.dart';
 import 'screens/home_screen.dart';
+import 'screens/seal_screen.dart';
+import 'screens/gacha_screen.dart';
 import 'screens/search_screen.dart';
-import 'screens/sns_screen.dart';
 import 'screens/favorites_screen.dart';
 
 void main() {
@@ -15,33 +16,38 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ProviderでProductProviderを全画面で利用可能にする
     return ChangeNotifierProvider(
-      create: (context) => ProductProvider()..initialize(),
+      create: (context) => TrackerProvider()..initialize(),
       child: MaterialApp(
-        title: 'シールトラッカー',
+        title: 'ボンボン＆ガチャトラッカー',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          // ミニマルデザインに合わせたテーマ設定
           colorScheme: ColorScheme.fromSeed(
             seedColor: Colors.black,
             brightness: Brightness.light,
           ),
           useMaterial3: true,
-          // AppBarのテーマ
           appBarTheme: const AppBarTheme(
             backgroundColor: Colors.white,
             foregroundColor: Colors.black,
             elevation: 0,
             centerTitle: true,
           ),
-          // ボトムナビゲーションバーのテーマ
           bottomNavigationBarTheme: const BottomNavigationBarThemeData(
             backgroundColor: Colors.white,
             selectedItemColor: Colors.black,
             unselectedItemColor: Colors.grey,
             type: BottomNavigationBarType.fixed,
             elevation: 8,
+            selectedLabelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+            unselectedLabelStyle: TextStyle(fontSize: 11),
+          ),
+          cardTheme: CardThemeData(
+            color: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         ),
         home: const MainScreen(),
@@ -50,7 +56,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// メイン画面（ボトムナビゲーション付き）
+/// メイン画面（5タブ構成）
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -61,11 +67,11 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  // 各タブの画面
   final List<Widget> _screens = const [
     HomeScreen(),
+    SealScreen(),
+    GachaScreen(),
     SearchScreen(),
-    SnsScreen(),
     FavoritesScreen(),
   ];
 
@@ -87,18 +93,23 @@ class _MainScreenState extends State<MainScreen> {
             label: 'ホーム',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.auto_awesome_outlined),
+            activeIcon: Icon(Icons.auto_awesome),
+            label: 'シール',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.egg_outlined),
+            activeIcon: Icon(Icons.egg),
+            label: 'ガチャ',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.search_outlined),
             activeIcon: Icon(Icons.search),
             label: '検索',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.tag_outlined),
-            activeIcon: Icon(Icons.tag),
-            label: 'SNS',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite_outline),
-            activeIcon: Icon(Icons.favorite),
+            icon: Icon(Icons.bookmark_outline),
+            activeIcon: Icon(Icons.bookmark),
             label: 'お気に入り',
           ),
         ],

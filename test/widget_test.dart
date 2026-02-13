@@ -1,30 +1,36 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:flutter_app/main.dart';
+import 'package:flutter_app/models/news_item.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('NewsItem JSON round-trip', () {
+    final item = NewsItem(
+      id: 'test_001',
+      title: 'テスト',
+      content: 'テスト内容',
+      url: 'https://example.com',
+      source: SourceType.xTwitter,
+      category: InfoCategory.bonbonDrop,
+      publishedAt: DateTime(2025, 1, 1),
+    );
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    final json = item.toJson();
+    final restored = NewsItem.fromJson(json);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(restored.id, equals(item.id));
+    expect(restored.title, equals(item.title));
+    expect(restored.source, equals(item.source));
+    expect(restored.category, equals(item.category));
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('InfoCategory displayName', () {
+    expect(InfoCategory.bonbonDrop.displayName, 'ボンボンドロップシール');
+    expect(InfoCategory.tamagotchi.displayName, 'たまごっちガチャ');
+    expect(InfoCategory.zootopia.displayName, 'ズートピアガチャ');
+  });
+
+  test('SourceType displayName', () {
+    expect(SourceType.xTwitter.displayName, 'X (Twitter)');
+    expect(SourceType.grok.displayName, 'Grok');
+    expect(SourceType.instagram.displayName, 'Instagram');
   });
 }

@@ -24,7 +24,7 @@ class RemoteDataService {
   Future<List<Map<String, dynamic>>> _fetchJsonList(String filename) async {
     try {
       final uri = _buildUri(filename);
-      final response = await http.get(uri);
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
 
       if (response.statusCode != 200) {
         if (kDebugMode) {

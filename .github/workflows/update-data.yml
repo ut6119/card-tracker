@@ -3,6 +3,10 @@ name: Update Data
 on:
   schedule:
     - cron: '0 * * * *'
+  push:
+    branches: [ main ]
+    paths:
+      - 'scripts/**'
   workflow_dispatch:
 
 permissions:

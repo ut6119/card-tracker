@@ -380,32 +380,40 @@ def fetch_qlia_products() -> list[dict]:
     products = []
     seen_urls = set()
     html = fetch_html(QLIA_CATEGORY_URL)
-    links = extract_links(html, QLIA_CATEGORY_URL, ["?pid="])
+    page_urls = {QLIA_CATEGORY_URL}
 
-    for link in links:
-        if link in seen_urls:
-            continue
-        seen_urls.add(link)
-        try:
-            product = parse_product_page(link)
-        except FetchError:
-            continue
-        name = product["name"]
-        if not name:
-            continue
-        if "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7" not in name:
-            continue
-        if not product["in_stock"]:
-            continue
-        products.append(
-            make_product(
-                "bonbondrop",
-                "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7",
-                "bonbondrop_official",
-                "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7\u516c\u5f0f\u30aa\u30f3\u30e9\u30a4\u30f3\u30b7\u30e7\u30c3\u30d7",
-                product,
+    for link in extract_links(html, QLIA_CATEGORY_URL, ["page=", "pno="]):
+        if "cbid=2943125" in link and "csid=16" in link:
+            page_urls.add(link)
+        if len(page_urls) >= 5:
+            break
+
+    for page_url in sorted(page_urls):
+        page_html = html if page_url == QLIA_CATEGORY_URL else fetch_html(page_url)
+        links = extract_links(page_html, QLIA_CATEGORY_URL, ["?pid="])
+
+        for link in links:
+            if link in seen_urls:
+                continue
+            seen_urls.add(link)
+            try:
+                product = parse_product_page(link)
+            except FetchError:
+                continue
+            name = product["name"]
+            if not name:
+                continue
+            if not product["in_stock"]:
+                continue
+            products.append(
+                make_product(
+                    "bonbondrop",
+                    "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7",
+                    "bonbondrop_official",
+                    "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7\u516c\u5f0f\u30aa\u30f3\u30e9\u30a4\u30f3\u30b7\u30e7\u30c3\u30d7",
+                    product,
+                )
             )
-        )
     return products
 
 

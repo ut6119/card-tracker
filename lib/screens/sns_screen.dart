@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/sns_post.dart';
-import '../services/realtime_sns_service.dart';
 import '../services/location_settings_service.dart';
 import '../services/remote_data_service.dart';
 
@@ -90,29 +89,6 @@ class _SnsScreenState extends State<SnsScreen> {
       final remoteService = RemoteDataService();
       final remoteJson = await remoteService.fetchSnsPosts();
       List<SnsPost> posts = remoteJson.map((json) => SnsPost.fromJson(json)).toList();
-
-      // リモートが空の場合は端末側で取得を試行
-      if (posts.isEmpty) {
-        final realtimeService = RealtimeSnsService();
-        final realtimePosts = await realtimeService.searchSealPosts(region: _selectedRegion);
-
-        posts = realtimePosts.map((json) {
-          return SnsPost(
-            id: json['id'] as String,
-            type: SnsType.twitter,
-            productId: json['id'] as String,
-            username: json['authorUsername'] as String,
-            content: json['content'] as String,
-            imageUrl: json['imageUrl'] as String?,
-            postUrl: json['url'] as String,
-            postedAt: DateTime.parse(json['postedAt'] as String),
-            storeName: json['storeName'] as String?,
-            location: json['location'] as String?,
-            price: (json['price'] as num?)?.toDouble(),
-            isVerified: json['verified'] as bool? ?? false,
-          );
-        }).toList();
-      }
 
       // リアルタイム投稿を優先、取得できなければ空
       final allPosts = posts;

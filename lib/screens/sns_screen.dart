@@ -27,6 +27,7 @@ class _SnsScreenState extends State<SnsScreen> {
   static const String _fixedRegionLabel = '大阪・兵庫';
   static const List<String> _prefectureKeywords = ['大阪', '大阪府', '兵庫', '兵庫県', '神戸', '姫路', '尼崎', '西宮', '芦屋', '明石', '宝塚'];
   List<String> _keywordFilters = [];
+  List<String> _excludeKeywordFilters = [];
 
   @override
   void initState() {
@@ -39,9 +40,13 @@ class _SnsScreenState extends State<SnsScreen> {
     final keywords = widget.isGacha
         ? await KeywordSettingsService.loadGachaKeywords()
         : await KeywordSettingsService.loadBonbonKeywords();
+    final excludeKeywords = widget.isGacha
+        ? await KeywordSettingsService.loadGachaExcludeKeywords()
+        : await KeywordSettingsService.loadBonbonExcludeKeywords();
     if (mounted) {
       setState(() {
         _keywordFilters = keywords;
+        _excludeKeywordFilters = excludeKeywords;
       });
     }
   }
@@ -128,13 +133,24 @@ class _SnsScreenState extends State<SnsScreen> {
         return _keywordFilters.any((keyword) => target.contains(keyword));
       }).toList();
     }
+
+    // 除外キーワード
+    if (_excludeKeywordFilters.isNotEmpty) {
+      posts = posts.where((post) {
+        final target = '${post.content} ${post.storeName ?? ''} ${post.location ?? ''}';
+        return !_excludeKeywordFilters.any((keyword) => target.contains(keyword));
+      }).toList();
+    }
     
     return posts;
   }
 
   Future<void> _showKeywordDialog() async {
-    final controller = TextEditingController(
+    final includeController = TextEditingController(
       text: _keywordFilters.join('\n'),
+    );
+    final excludeController = TextEditingController(
+      text: _excludeKeywordFilters.join('\n'),
     );
 
     final result = await showDialog<String>(
@@ -143,13 +159,29 @@ class _SnsScreenState extends State<SnsScreen> {
         title: Text(widget.isGacha ? 'ガチャワード設定' : 'ボンボンドロップ設定'),
         content: SizedBox(
           width: double.maxFinite,
-          child: TextField(
-            controller: controller,
-            maxLines: 8,
-            decoration: const InputDecoration(
-              hintText: '1行に1ワードで入力',
-              border: OutlineInputBorder(),
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: includeController,
+                maxLines: 6,
+                decoration: const InputDecoration(
+                  labelText: '含めるワード',
+                  hintText: '1行に1ワードで入力',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: excludeController,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: '除外ワード',
+                  hintText: '1行に1ワードで入力',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
@@ -158,7 +190,7 @@ class _SnsScreenState extends State<SnsScreen> {
             child: const Text('キャンセル'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, controller.text),
+            onPressed: () => Navigator.pop(context, 'ok'),
             child: const Text('保存'),
           ),
         ],
@@ -169,7 +201,13 @@ class _SnsScreenState extends State<SnsScreen> {
       return;
     }
 
-    final keywords = result
+    final keywords = includeController.text
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+
+    final excludeKeywords = excludeController.text
         .split('\n')
         .map((line) => line.trim())
         .where((line) => line.isNotEmpty)
@@ -177,13 +215,16 @@ class _SnsScreenState extends State<SnsScreen> {
 
     if (widget.isGacha) {
       await KeywordSettingsService.saveGachaKeywords(keywords);
+      await KeywordSettingsService.saveGachaExcludeKeywords(excludeKeywords);
     } else {
       await KeywordSettingsService.saveBonbonKeywords(keywords);
+      await KeywordSettingsService.saveBonbonExcludeKeywords(excludeKeywords);
     }
 
     if (mounted) {
       setState(() {
         _keywordFilters = keywords;
+        _excludeKeywordFilters = excludeKeywords;
       });
     }
   }

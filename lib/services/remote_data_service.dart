@@ -17,8 +17,12 @@ class RemoteDataService {
     return _fetchJsonList('products.json');
   }
 
-  Future<List<Map<String, dynamic>>> fetchSnsPosts() async {
-    return _fetchJsonList('sns.json');
+  Future<List<Map<String, dynamic>>> fetchBonbonPosts() async {
+    return _fetchJsonList('sns_bonbon.json');
+  }
+
+  Future<List<Map<String, dynamic>>> fetchGachaPosts() async {
+    return _fetchJsonList('sns_gacha.json');
   }
 
   Future<List<Map<String, dynamic>>> _fetchJsonList(String filename) async {

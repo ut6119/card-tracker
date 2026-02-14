@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/product_provider.dart';
-import 'screens/home_screen.dart';
 import 'screens/sns_screen.dart';
 
 void main() {
@@ -61,8 +60,8 @@ class _MainScreenState extends State<MainScreen> {
 
   // 各タブの画面
   final List<Widget> _screens = const [
-    HomeScreen(),
-    SnsScreen(),
+    SnsScreen(title: 'ガチャガチャ', isGacha: true),
+    SnsScreen(title: 'ボンボンドロップ', isGacha: false),
   ];
 
   @override
@@ -80,12 +79,12 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
-            label: 'ホーム',
+            label: 'ガチャガチャ',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.chat_bubble_outline),
             activeIcon: Icon(Icons.chat_bubble),
-            label: 'SNS',
+            label: 'ボンボンドロップ',
           ),
         ],
       ),

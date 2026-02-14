@@ -19,14 +19,14 @@ HEADERS = {
 }
 TIMEOUT_SECONDS = 20
 
-BASE_KEYWORDS = [
+BONBON_BASE_KEYWORDS = [
     "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7 \u5165\u8377",
     "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7 \u8ca9\u58f2",
     "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7 \u62bd\u9078",
     "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7 \u518d\u8ca9",
 ]
 
-STORE_KEYWORDS = [
+BONBON_STORE_KEYWORDS = [
     "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7 \u30ad\u30c7\u30a3\u30e9\u30f3\u30c9",
     "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7 \u30ed\u30d5\u30c8",
     "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7 \u30cf\u30f3\u30ba",
@@ -35,10 +35,11 @@ STORE_KEYWORDS = [
     "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7 \u30a2\u30cb\u30e1\u30a4\u30c8",
 ]
 
-MAJOR_CITIES = [
+OSAKA_HYOGO_CITIES = [
     "\u5927\u962a",
     "\u6885\u7530",
     "\u96e3\u6ce2",
+    "\u5929\u738b\u5bfa",
     "\u795e\u6238",
     "\u4e09\u5bae",
     "\u897f\u5bae",
@@ -46,15 +47,21 @@ MAJOR_CITIES = [
     "\u59eb\u8def",
 ]
 
-CONTENT_TERMS = [
-    "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7 \u5165\u8377",
-    "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7 \u8ca9\u58f2",
-    "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7 \u62bd\u9078",
-    "\u30dc\u30f3\u30dc\u30f3\u30c9\u30ed\u30c3\u30d7 \u518d\u8ca9",
+BONBON_CITY_KEYWORDS = [
+    f"{term} {city}"
+    for city in OSAKA_HYOGO_CITIES
+    for term in BONBON_BASE_KEYWORDS
 ]
 
-CITY_KEYWORDS = [
-    f"{term} {city}" for city in MAJOR_CITIES for term in CONTENT_TERMS
+GACHA_BASE_KEYWORDS = [
+    "\u30ac\u30c1\u30e3 \u30ba\u30fc\u30c8\u30d4\u30a2",
+    "\u30ac\u30c1\u30e3 \u305f\u307e\u3054\u3063\u3061",
+]
+
+GACHA_CITY_KEYWORDS = [
+    f\"{term} {city}\"
+    for city in OSAKA_HYOGO_CITIES
+    for term in GACHA_BASE_KEYWORDS
 ]
 
 TAMAGOTCHI_MATCH = [
@@ -602,8 +609,58 @@ def search_yahoo_realtime(keyword: str) -> list[dict]:
     return results
 
 
-def fetch_x_posts() -> list[dict]:
-    keywords = BASE_KEYWORDS + STORE_KEYWORDS + CITY_KEYWORDS
+def _strip_html(text: str) -> str:
+    return BeautifulSoup(text, "html.parser").get_text(" ", strip=True)
+
+
+def fetch_x_oembed_text(url: str) -> str | None:
+    try:
+        oembed_url = (
+            "https://publish.twitter.com/oembed?omit_script=1&url="
+            + quote(url, safe="")
+        )
+        response = requests.get(oembed_url, headers=HEADERS, timeout=TIMEOUT_SECONDS)
+        if response.status_code != 200:
+            return None
+        payload = response.json()
+        html = payload.get("html", "")
+        text = _strip_html(html)
+        return text or None
+    except Exception:
+        return None
+
+
+def fetch_x_og_text(url: str) -> str | None:
+    try:
+        html = fetch_html(url)
+    except FetchError:
+        return None
+    soup = BeautifulSoup(html, "html.parser")
+    meta = soup.find("meta", attrs={"property": "og:description"})
+    if not meta:
+        meta = soup.find("meta", attrs={"name": "description"})
+    if not meta:
+        return None
+    content = meta.get("content")
+    if not content:
+        return None
+    return clean_text(content)
+
+
+def enrich_x_post_content(posts: list[dict], limit: int = 25) -> None:
+    for index, post in enumerate(posts):
+        if index >= limit:
+            break
+        url = post.get("postUrl")
+        if not url:
+            continue
+        text = fetch_x_oembed_text(url) or fetch_x_og_text(url)
+        if text:
+            post["content"] = text
+        time.sleep(0.3)
+
+
+def fetch_x_posts_for_keywords(keywords: list[str]) -> list[dict]:
     posts = []
     seen_urls = set()
 
@@ -649,18 +706,27 @@ def main() -> int:
 
     all_products.sort(key=lambda item: item["name"])
 
-    sns_posts = fetch_x_posts()
+    bonbon_keywords = BONBON_BASE_KEYWORDS + BONBON_STORE_KEYWORDS + BONBON_CITY_KEYWORDS
+    gacha_keywords = GACHA_BASE_KEYWORDS + GACHA_CITY_KEYWORDS
+
+    bonbon_posts = fetch_x_posts_for_keywords(bonbon_keywords)
     raffle_posts = fetch_raffle_posts()
     if raffle_posts:
-        seen = {post["postUrl"] for post in sns_posts}
+        seen = {post["postUrl"] for post in bonbon_posts}
         for post in raffle_posts:
             if post["postUrl"] in seen:
                 continue
-            sns_posts.append(post)
+            bonbon_posts.append(post)
             seen.add(post["postUrl"])
 
+    gacha_posts = fetch_x_posts_for_keywords(gacha_keywords)
+
+    enrich_x_post_content(bonbon_posts, limit=30)
+    enrich_x_post_content(gacha_posts, limit=30)
+
     write_json(OUTPUT_DIR / "products.json", all_products)
-    write_json(OUTPUT_DIR / "sns.json", sns_posts)
+    write_json(OUTPUT_DIR / "sns_bonbon.json", bonbon_posts)
+    write_json(OUTPUT_DIR / "sns_gacha.json", gacha_posts)
 
     return 0
 

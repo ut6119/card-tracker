@@ -36,12 +36,12 @@ jobs:
 
       - name: Commit and push
         run: |
-          if git diff --quiet -- data/products.json data/sns.json; then
+          if git diff --quiet -- data/*.json; then
             echo "No changes"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/products.json data/sns.json
+          git add data/*.json
           git commit -m "Update data"
           git push

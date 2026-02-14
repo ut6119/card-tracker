@@ -2,11 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/sns_post.dart';
 import '../services/remote_data_service.dart';
+import '../services/keyword_settings_service.dart';
 
 /// SNS画面
 /// X・Instagram・Web情報を表示（大阪・兵庫のみ）
 class SnsScreen extends StatefulWidget {
-  const SnsScreen({super.key});
+  final String title;
+  final bool isGacha;
+
+  const SnsScreen({
+    super.key,
+    required this.title,
+    required this.isGacha,
+  });
 
   @override
   State<SnsScreen> createState() => _SnsScreenState();
@@ -18,11 +26,24 @@ class _SnsScreenState extends State<SnsScreen> {
   bool _isLoading = true;
   static const String _fixedRegionLabel = '大阪・兵庫';
   static const List<String> _prefectureKeywords = ['大阪', '大阪府', '兵庫', '兵庫県', '神戸', '姫路', '尼崎', '西宮', '芦屋', '明石', '宝塚'];
+  List<String> _keywordFilters = [];
 
   @override
   void initState() {
     super.initState();
+    _loadKeywords();
     _loadSnsPosts();
+  }
+
+  Future<void> _loadKeywords() async {
+    final keywords = widget.isGacha
+        ? await KeywordSettingsService.loadGachaKeywords()
+        : await KeywordSettingsService.loadBonbonKeywords();
+    if (mounted) {
+      setState(() {
+        _keywordFilters = keywords;
+      });
+    }
   }
 
   /// SNS投稿データを読み込み
@@ -33,7 +54,9 @@ class _SnsScreenState extends State<SnsScreen> {
 
     try {
       final remoteService = RemoteDataService();
-      final remoteJson = await remoteService.fetchSnsPosts();
+      final remoteJson = widget.isGacha
+          ? await remoteService.fetchGachaPosts()
+          : await remoteService.fetchBonbonPosts();
       List<SnsPost> posts = remoteJson.map((json) => SnsPost.fromJson(json)).toList();
 
       // リアルタイム投稿を優先、取得できなければ空
@@ -97,8 +120,72 @@ class _SnsScreenState extends State<SnsScreen> {
       final target = '${post.location ?? ''} ${post.storeName ?? ''} ${post.content}';
       return _prefectureKeywords.any((keyword) => target.contains(keyword));
     }).toList();
+
+    // キーワードフィルタ（設定がある場合）
+    if (_keywordFilters.isNotEmpty) {
+      posts = posts.where((post) {
+        final target = '${post.content} ${post.storeName ?? ''} ${post.location ?? ''}';
+        return _keywordFilters.any((keyword) => target.contains(keyword));
+      }).toList();
+    }
     
     return posts;
+  }
+
+  Future<void> _showKeywordDialog() async {
+    final controller = TextEditingController(
+      text: _keywordFilters.join('\n'),
+    );
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(widget.isGacha ? 'ガチャワード設定' : 'ボンボンドロップ設定'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: TextField(
+            controller: controller,
+            maxLines: 8,
+            decoration: const InputDecoration(
+              hintText: '1行に1ワードで入力',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == null) {
+      return;
+    }
+
+    final keywords = result
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+
+    if (widget.isGacha) {
+      await KeywordSettingsService.saveGachaKeywords(keywords);
+    } else {
+      await KeywordSettingsService.saveBonbonKeywords(keywords);
+    }
+
+    if (mounted) {
+      setState(() {
+        _keywordFilters = keywords;
+      });
+    }
   }
 
   @override
@@ -106,8 +193,13 @@ class _SnsScreenState extends State<SnsScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('SNS情報'),
+        title: Text(widget.title),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.tune),
+            onPressed: _showKeywordDialog,
+            tooltip: 'ワード設定',
+          ),
           // 更新ボタン
           IconButton(
             icon: const Icon(Icons.refresh),

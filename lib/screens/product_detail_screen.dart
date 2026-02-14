@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/card_product.dart';
-import 'package:provider/provider.dart';
-import '../providers/product_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// 商品詳細画面
@@ -17,23 +15,6 @@ class ProductDetailScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('商品詳細'),
-        actions: [
-          // お気に入りボタン
-          Consumer<ProductProvider>(
-            builder: (context, provider, child) {
-              final isFavorite = provider.isFavorite(product.id);
-              return IconButton(
-                icon: Icon(
-                  isFavorite ? Icons.favorite : Icons.favorite_outline,
-                  color: isFavorite ? Colors.red : Colors.grey,
-                ),
-                onPressed: () {
-                  provider.toggleFavorite(product.id);
-                },
-              );
-            },
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Column(

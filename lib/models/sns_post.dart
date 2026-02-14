@@ -31,11 +31,14 @@ class SnsPost {
   
   /// JSONからオブジェクトを生成
   factory SnsPost.fromJson(Map<String, dynamic> json) {
+    final typeValue = json['type'] as String? ?? 'other';
+    final resolvedType = SnsType.values.firstWhere(
+      (e) => e.toString() == 'SnsType.$typeValue',
+      orElse: () => SnsType.other,
+    );
     return SnsPost(
       id: json['id'] as String,
-      type: SnsType.values.firstWhere(
-        (e) => e.toString() == 'SnsType.${json['type']}',
-      ),
+      type: resolvedType,
       productId: json['productId'] as String,
       username: json['username'] as String,
       content: json['content'] as String,
@@ -72,7 +75,6 @@ class SnsPost {
 enum SnsType {
   twitter,    // X (旧Twitter)
   instagram,  // Instagram
-  line,       // LINEオープンチャット
   other,      // その他
 }
 
@@ -85,10 +87,8 @@ extension SnsTypeExtension on SnsType {
         return 'X (Twitter)';
       case SnsType.instagram:
         return 'Instagram';
-      case SnsType.line:
-        return 'LINE';
       case SnsType.other:
-        return 'その他';
+        return 'Web';
     }
   }
   
@@ -99,8 +99,6 @@ extension SnsTypeExtension on SnsType {
         return 0xFF1DA1F2; // Xブルー
       case SnsType.instagram:
         return 0xFFE4405F; // Instagramピンク
-      case SnsType.line:
-        return 0xFF00B900; // LINEグリーン
       case SnsType.other:
         return 0xFF9E9E9E; // グレー
     }

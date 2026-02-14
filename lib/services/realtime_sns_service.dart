@@ -4,29 +4,23 @@ import 'package:flutter/foundation.dart';
 /// リアルタイムSNS情報取得サービス
 /// Yahoo!リアルタイム検索とGoogle検索を使用してX投稿を取得
 class RealtimeSnsService {
-  /// シール関連のX投稿を検索
-  /// [region] 地域名（例：'全国', '近畿', '大阪府'）
-  Future<List<Map<String, dynamic>>> searchSealPosts({String region = '全国'}) async {
+  /// ボンボンドロップ関連のX投稿を検索（大阪・兵庫のみ）
+  Future<List<Map<String, dynamic>>> searchSealPosts() async {
     final List<Map<String, dynamic>> allPosts = [];
     
-    // 基本検索キーワード（全国共通）
+    // 基本検索キーワード（「シール」ワードは除外）
     final baseKeywords = [
-      'ボンボンドロップシール 入荷',
-      'ボンボンドロップシール 販売',
-      'シール 販売',
-      'シール 予約',
-      'シール 入荷',
-      'サンリオ シール 販売',
-      'たまごっち シール',
-      'ディズニー ボンボンドロップ',
-      'シール 入荷情報',
+      'ボンボンドロップ 入荷',
+      'ボンボンドロップ 販売',
+      'ボンボンドロップ 抽選',
+      'ボンボンドロップ 再販',
     ];
     
-    // 地域別キーワードを追加
-    final keywords = List<String>.from(baseKeywords);
-    if (region != '全国') {
-      keywords.addAll(_getRegionalKeywords(region));
-    }
+    // 大阪・兵庫の地域キーワードを追加
+    final keywords = [
+      ...baseKeywords,
+      ..._getRegionalKeywords(),
+    ];
     
     try {
       for (final keyword in keywords) {
@@ -180,58 +174,27 @@ class RealtimeSnsService {
   }
   
   /// 地域別検索キーワードを生成
-  List<String> _getRegionalKeywords(String region) {
-    final regionalKeywords = <String>[];
-    
-    // 投稿内容での検索キーワード
-    final contentTerms = ['シール 入荷', 'シール 販売', 'ボンボンドロップシール'];
-    
-    // アカウント名での検索キーワード（店舗名など）
-    final accountTerms = ['店', 'ショップ', 'ストア', 'SHOP'];
-    
-    // 地域ごとの都市・エリアリスト
-    final regionCities = <String, List<String>>{
-      '北海道': ['札幌', '函館', '旭川'],
-      '東北': ['青森', '仙台', '盛岡', '秋田', '山形', '福島'],
-      '関東': ['東京', '渋谷', '新宿', '池袋', '横浜', '川崎', '大宮', '千葉', '柏'],
-      '中部': ['名古屋', '静岡', '浜松', '新潟', '金沢', '長野'],
-      '近畿': ['大阪', '梅田', '難波', '京都', '神戸', '三宮', '奈良', '和歌山'],
-      '中国': ['広島', '岡山', '山口', '鳥取', '島根'],
-      '四国': ['高松', '松山', '徳島', '高知'],
-      '九州・沖縄': ['福岡', '天神', '博多', '熊本', '長崎', '鹿児島', '那覇'],
-    };
-    
-    // 選択された地域の都市でキーワードを生成
-    final cities = regionCities[region] ?? [];
-    
-    for (final city in cities) {
-      // 1. 投稿内容での検索（例：「シール 入荷 大阪」）
-      for (final term in contentTerms) {
-        regionalKeywords.add('$term $city');
-      }
-      
-      // 2. アカウント名での検索（例：「大阪 店 シール」「梅田店 シール販売」）
-      for (final accountTerm in accountTerms) {
-        regionalKeywords.add('$city$accountTerm シール');
-        regionalKeywords.add('$city シール 販売');
-      }
-    }
-    
-    // 3. 有名店舗名での検索（地域に関係なく追加）
-    final storeNames = [
-      'キディランド',
-      'ロフト',
-      'ハンズ',
-      'ドンキホーテ',
-      'ヴィレッジヴァンガード',
-      'アニメイト',
+  List<String> _getRegionalKeywords() {
+    const cities = [
+      '大阪',
+      '梅田',
+      '難波',
+      '天王寺',
+      '神戸',
+      '三宮',
+      '西宮',
+      '尼崎',
+      '姫路',
     ];
     
+    final regionalKeywords = <String>[];
     for (final city in cities) {
-      for (final store in storeNames) {
-        regionalKeywords.add('$city $store シール');
-      }
+      regionalKeywords.add('ボンボンドロップ $city');
     }
+    
+    // 府県名も追加
+    regionalKeywords.add('ボンボンドロップ 大阪府');
+    regionalKeywords.add('ボンボンドロップ 兵庫県');
     
     return regionalKeywords;
   }

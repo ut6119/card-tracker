@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/sns_post.dart';
-import '../services/location_settings_service.dart';
 import '../services/remote_data_service.dart';
 
 /// SNS画面
-/// X、Instagram、LINEなどのSNS情報を表示
+/// X・Instagram・Web情報を表示（大阪・兵庫のみ）
 class SnsScreen extends StatefulWidget {
   const SnsScreen({super.key});
 
@@ -17,66 +16,13 @@ class _SnsScreenState extends State<SnsScreen> {
   SnsType? _selectedSnsType;
   List<SnsPost> _snsPosts = [];
   bool _isLoading = true;
-  String _selectedRegion = '全国';
+  static const String _fixedRegionLabel = '大阪・兵庫';
+  static const List<String> _prefectureKeywords = ['大阪', '大阪府', '兵庫', '兵庫県', '神戸', '姫路', '尼崎', '西宮', '芦屋', '明石', '宝塚'];
 
   @override
   void initState() {
     super.initState();
-    _loadLocation();
     _loadSnsPosts();
-  }
-  
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // 画面が表示されるたびに地域設定をリロード
-    _loadLocation();
-  }
-  
-  /// 現在地設定を読み込み
-  Future<void> _loadLocation() async {
-    final region = await LocationSettingsService.getLocation();
-    if (mounted) {
-      setState(() {
-        _selectedRegion = region;
-      });
-    }
-  }
-  
-  /// 現在地設定ダイアログを表示
-  Future<void> _showLocationDialog() async {
-    final selected = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('現在地を設定'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: LocationSettingsService.regions.length,
-            itemBuilder: (context, index) {
-              final region = LocationSettingsService.regions[index];
-              return ListTile(
-                title: Text(region),
-                trailing: _selectedRegion == region
-                    ? const Icon(Icons.check, color: Colors.black)
-                    : null,
-                onTap: () => Navigator.pop(context, region),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-    
-    if (selected != null) {
-      await LocationSettingsService.saveLocation(selected);
-      setState(() {
-        _selectedRegion = selected;
-      });
-      // 地域変更後に投稿を再取得
-      await _loadSnsPosts();
-    }
   }
 
   /// SNS投稿データを読み込み
@@ -148,11 +94,8 @@ class _SnsScreenState extends State<SnsScreen> {
     
     // 地域でフィルタ
     posts = posts.where((post) {
-      return LocationSettingsService.isLocationMatch(
-        post.location,
-        post.storeName,
-        _selectedRegion,
-      );
+      final target = '${post.location ?? ''} ${post.storeName ?? ''} ${post.content}';
+      return _prefectureKeywords.any((keyword) => target.contains(keyword));
     }).toList();
     
     return posts;
@@ -165,12 +108,6 @@ class _SnsScreenState extends State<SnsScreen> {
       appBar: AppBar(
         title: const Text('SNS情報'),
         actions: [
-          // 現在地設定ボタン
-          IconButton(
-            icon: const Icon(Icons.location_on),
-            onPressed: _showLocationDialog,
-            tooltip: '現在地設定: $_selectedRegion',
-          ),
           // 更新ボタン
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -190,7 +127,7 @@ class _SnsScreenState extends State<SnsScreen> {
                 const Icon(Icons.location_on, size: 16, color: Colors.grey),
                 const SizedBox(width: 4),
                 Text(
-                  '表示地域: $_selectedRegion',
+                  '表示地域: $_fixedRegionLabel',
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const Spacer(),
@@ -242,7 +179,7 @@ class _SnsScreenState extends State<SnsScreen> {
           _buildFilterChip('すべて', null),
           _buildFilterChip('X', SnsType.twitter),
           _buildFilterChip('Instagram', SnsType.instagram),
-          _buildFilterChip('LINE', SnsType.line),
+          _buildFilterChip('Web', SnsType.other),
         ],
       ),
     );

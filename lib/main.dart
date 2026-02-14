@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/product_provider.dart';
 import 'screens/home_screen.dart';
-import 'screens/search_screen.dart';
 import 'screens/sns_screen.dart';
-import 'screens/favorites_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -64,9 +62,7 @@ class _MainScreenState extends State<MainScreen> {
   // 各タブの画面
   final List<Widget> _screens = const [
     HomeScreen(),
-    SearchScreen(),
     SnsScreen(),
-    FavoritesScreen(),
   ];
 
   @override
@@ -87,19 +83,9 @@ class _MainScreenState extends State<MainScreen> {
             label: 'ホーム',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search_outlined),
-            activeIcon: Icon(Icons.search),
-            label: '検索',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.tag_outlined),
-            activeIcon: Icon(Icons.tag),
+            icon: Icon(Icons.chat_bubble_outline),
+            activeIcon: Icon(Icons.chat_bubble),
             label: 'SNS',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite_outline),
-            activeIcon: Icon(Icons.favorite),
-            label: 'お気に入り',
           ),
         ],
       ),

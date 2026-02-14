@@ -33,11 +33,11 @@ class HomeScreen extends StatelessWidget {
           return Column(
             children: [
               // カテゴリーフィルター
-              _CategoryFilter(),
+              const _CategoryFilter(),
               
               const Divider(height: 1),
               
-              // 実データ取得ボタン
+              // 最新データ再読み込みボタン
               Container(
                 padding: const EdgeInsets.all(8),
                 color: Colors.grey[100],
@@ -46,15 +46,18 @@ class HomeScreen extends StatelessWidget {
                     ElevatedButton.icon(
                       onPressed: provider.isLoading ? null : () async {
                         try {
-                          // 楽天APIから実データを取得
+                          // リモート最新データを再読み込み
                           await provider.fetchAllRealData();
                           
                           if (context.mounted) {
+                            final count = provider.filteredProducts.length;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('✅ ${provider.filteredProducts.length}件のデータを取得しました！（サンリオ・たまごっち公式）'),
+                                content: count > 0
+                                    ? Text('✅ ${count}件のデータを読み込みました')
+                                    : const Text('最新データが取得できませんでした'),
                                 duration: const Duration(seconds: 2),
-                                backgroundColor: Colors.green,
+                                backgroundColor: count > 0 ? Colors.green : Colors.orange,
                               ),
                             );
                           }
@@ -81,7 +84,7 @@ class HomeScreen extends StatelessWidget {
                             )
                           : const Icon(Icons.refresh),
                       label: Text(
-                        provider.isLoading ? '取得中...' : '🔄 サンリオ・たまごっち公式から取得',
+                        provider.isLoading ? '取得中...' : '🔄 最新データを再読み込み',
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
@@ -91,7 +94,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     const Text(
-                      '※ サンリオ・たまごっち公式サイトから商品情報を取得します',
+                      '※ 公式サイト/Xの情報は1時間ごとに自動更新されます',
                       style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
@@ -128,18 +131,20 @@ class HomeScreen extends StatelessWidget {
 
 /// カテゴリーフィルターウィジェット
 class _CategoryFilter extends StatelessWidget {
-  final List<String> categories = const [
-    'すべて',
-    'ボンボンドロップ',
-    'キラキラシール',
-    'アニメシール',
-    'レトロシール',
-  ];
+  const _CategoryFilter();
 
   @override
   Widget build(BuildContext context) {
     return Consumer<ProductProvider>(
       builder: (context, provider, child) {
+        final categorySet = <String>{};
+        for (final product in provider.allProducts) {
+          categorySet.add(product.category);
+        }
+        final categories = [
+          'すべて',
+          ...categorySet.toList()..sort(),
+        ];
         return Container(
           height: 50,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -222,10 +227,18 @@ class _ProductListItem extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(4),
-                    image: DecorationImage(
-                      image: NetworkImage(product.imageUrl),
-                      fit: BoxFit.cover,
-                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: product.imageUrl.isEmpty
+                        ? const Icon(Icons.image_not_supported, color: Colors.grey)
+                        : Image.network(
+                            product.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(Icons.image_not_supported, color: Colors.grey);
+                            },
+                          ),
                   ),
                 ),
                 

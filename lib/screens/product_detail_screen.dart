@@ -44,10 +44,19 @@ class ProductDetailScreen extends StatelessWidget {
               width: double.infinity,
               height: 250,
               color: Colors.grey.shade100,
-              child: Image.network(
-                product.imageUrl,
-                fit: BoxFit.contain,
-              ),
+              child: product.imageUrl.isEmpty
+                  ? const Center(
+                      child: Icon(Icons.image_not_supported, color: Colors.grey),
+                    )
+                  : Image.network(
+                      product.imageUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Center(
+                          child: Icon(Icons.image_not_supported, color: Colors.grey),
+                        );
+                      },
+                    ),
             ),
             
             const SizedBox(height: 16),

@@ -1,8 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/card_product.dart';
-import '../services/sample_data_service.dart';
-import '../services/free_data_service.dart';
+import '../services/remote_data_service.dart';
 
 /// 商品データ管理プロバイダー
 /// 商品一覧、検索、フィルター、お気に入り機能を提供
@@ -33,7 +32,7 @@ class ProductProvider with ChangeNotifier {
     notifyListeners();
     
     try {
-      // サンプルデータを読み込み
+      // 最新データを読み込み
       await loadProducts();
       
       // お気に入りデータを復元
@@ -51,9 +50,18 @@ class ProductProvider with ChangeNotifier {
   /// 商品データを読み込み
   Future<void> loadProducts() async {
     try {
-      // サンプルデータサービスから商品データを取得
-      final jsonData = SampleDataService.getSampleProducts();
-      _allProducts = jsonData.map((json) => CardProduct.fromJson(json)).toList();
+      // リモートの最新データを優先
+      final remoteDataService = RemoteDataService();
+      final remoteJson = await remoteDataService.fetchProducts();
+
+      if (remoteJson.isNotEmpty) {
+        _allProducts = remoteJson.map((json) => CardProduct.fromJson(json)).toList();
+      } else {
+        _allProducts = [];
+        if (kDebugMode) {
+          debugPrint('⚠️ リモートデータが空でした');
+        }
+      }
       
       // フィルター適用
       _applyFilters();
@@ -73,8 +81,8 @@ class ProductProvider with ChangeNotifier {
     notifyListeners();
     
     try {
-      final freeDataService = FreeDataService();
-      final products = await freeDataService.fetchAllProducts();
+      final remoteDataService = RemoteDataService();
+      final products = await remoteDataService.fetchProducts();
       
       if (products.isNotEmpty) {
         // 既存のデータをクリアして新しいデータに置き換え
@@ -92,7 +100,7 @@ class ProductProvider with ChangeNotifier {
         }
       } else {
         if (kDebugMode) {
-          debugPrint('⚠️ データが取得できませんでした');
+          debugPrint('⚠️ リモートデータが空でした');
         }
       }
     } catch (e) {
@@ -111,8 +119,8 @@ class ProductProvider with ChangeNotifier {
     notifyListeners();
     
     try {
-      final freeDataService = FreeDataService();
-      final products = await freeDataService.fetchAllProducts();
+      final remoteDataService = RemoteDataService();
+      final products = await remoteDataService.fetchProducts();
       
       if (products.isNotEmpty) {
         // 既存のデータをクリアして新しいデータに置き換え
@@ -130,7 +138,7 @@ class ProductProvider with ChangeNotifier {
         }
       } else {
         if (kDebugMode) {
-          debugPrint('⚠️ データが取得できませんでした');
+          debugPrint('⚠️ リモートデータが空でした');
         }
       }
     } catch (e) {

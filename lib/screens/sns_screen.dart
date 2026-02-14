@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/sns_post.dart';
-import '../services/sns_sample_data_service.dart';
 import '../services/realtime_sns_service.dart';
 import '../services/location_settings_service.dart';
+import '../services/remote_data_service.dart';
 
 /// SNS画面
 /// X、Instagram、LINEなどのSNS情報を表示
@@ -87,34 +87,35 @@ class _SnsScreenState extends State<SnsScreen> {
     });
 
     try {
-      // リアルタイムでX投稿を取得（地域を指定）
-      final realtimeService = RealtimeSnsService();
-      final realtimePosts = await realtimeService.searchSealPosts(region: _selectedRegion);
-      
-      // リアルタイム投稿をSnsPost形式に変換
-      final posts = realtimePosts.map((json) {
-        return SnsPost(
-          id: json['id'] as String,
-          type: SnsType.twitter,
-          productId: json['id'] as String,
-          username: json['authorUsername'] as String,
-          content: json['content'] as String,
-          imageUrl: json['imageUrl'] as String?,
-          postUrl: json['url'] as String,
-          postedAt: DateTime.parse(json['postedAt'] as String),
-          storeName: json['storeName'] as String?,
-          location: json['location'] as String?,
-          price: (json['price'] as num?)?.toDouble(),
-          isVerified: json['verified'] as bool? ?? false,
-        );
-      }).toList();
-      
-      // サンプルデータも追加（実際の投稿が見つからない場合のバックアップ）
-      final sampleData = SnsSampleDataService.getSampleSnsPosts();
-      final samplePosts = sampleData.map((json) => SnsPost.fromJson(json)).toList();
-      
-      // リアルタイム投稿を優先、サンプルデータを追加
-      final allPosts = [...posts, ...samplePosts];
+      final remoteService = RemoteDataService();
+      final remoteJson = await remoteService.fetchSnsPosts();
+      List<SnsPost> posts = remoteJson.map((json) => SnsPost.fromJson(json)).toList();
+
+      // リモートが空の場合は端末側で取得を試行
+      if (posts.isEmpty) {
+        final realtimeService = RealtimeSnsService();
+        final realtimePosts = await realtimeService.searchSealPosts(region: _selectedRegion);
+
+        posts = realtimePosts.map((json) {
+          return SnsPost(
+            id: json['id'] as String,
+            type: SnsType.twitter,
+            productId: json['id'] as String,
+            username: json['authorUsername'] as String,
+            content: json['content'] as String,
+            imageUrl: json['imageUrl'] as String?,
+            postUrl: json['url'] as String,
+            postedAt: DateTime.parse(json['postedAt'] as String),
+            storeName: json['storeName'] as String?,
+            location: json['location'] as String?,
+            price: (json['price'] as num?)?.toDouble(),
+            isVerified: json['verified'] as bool? ?? false,
+          );
+        }).toList();
+      }
+
+      // リアルタイム投稿を優先、取得できなければ空
+      final allPosts = posts;
       
       // 投稿日時順にソート（新しい順）
       allPosts.sort((a, b) => b.postedAt.compareTo(a.postedAt));
@@ -133,22 +134,25 @@ class _SnsScreenState extends State<SnsScreen> {
             backgroundColor: Colors.green,
           ),
         );
+      } else if (mounted && posts.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('最新情報が取得できませんでした'),
+            duration: Duration(seconds: 3),
+            backgroundColor: Colors.orange,
+          ),
+        );
       }
     } catch (e) {
-      // エラー時はサンプルデータのみを使用
-      final jsonData = SnsSampleDataService.getSampleSnsPosts();
-      final posts = jsonData.map((json) => SnsPost.fromJson(json)).toList();
-      posts.sort((a, b) => b.postedAt.compareTo(a.postedAt));
-
       setState(() {
-        _snsPosts = posts;
+        _snsPosts = [];
         _isLoading = false;
       });
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('最新情報の取得に失敗しました。サンプルデータを表示します。'),
+            content: Text('最新情報の取得に失敗しました'),
             duration: Duration(seconds: 3),
             backgroundColor: Colors.orange,
           ),

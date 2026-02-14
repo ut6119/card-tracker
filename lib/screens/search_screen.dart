@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/product_provider.dart';
-import '../services/sample_data_service.dart';
 
 /// 検索画面
 /// 検索バーとカテゴリーフィルターを提供
@@ -66,12 +65,21 @@ class _SearchScreenState extends State<SearchScreen> {
           // カテゴリーチップ
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: SampleDataService.getCategories().map((category) {
-                return Consumer<ProductProvider>(
-                  builder: (context, provider, child) {
+            child: Consumer<ProductProvider>(
+              builder: (context, provider, child) {
+                final categorySet = <String>{};
+                for (final product in provider.allProducts) {
+                  categorySet.add(product.category);
+                }
+                final categories = [
+                  'すべて',
+                  ...categorySet.toList()..sort(),
+                ];
+
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: categories.map((category) {
                     final isSelected = provider.selectedCategory == category;
                     return FilterChip(
                       label: Text(category),
@@ -95,9 +103,9 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                       ),
                     );
-                  },
+                  }).toList(),
                 );
-              }).toList(),
+              },
             ),
           ),
           
@@ -140,10 +148,18 @@ class _SearchScreenState extends State<SearchScreen> {
                           decoration: BoxDecoration(
                             color: Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(4),
-                            image: DecorationImage(
-                              image: NetworkImage(product.imageUrl),
-                              fit: BoxFit.cover,
-                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: product.imageUrl.isEmpty
+                                ? const Icon(Icons.image_not_supported, color: Colors.grey)
+                                : Image.network(
+                                    product.imageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Icon(Icons.image_not_supported, color: Colors.grey);
+                                    },
+                                  ),
                           ),
                         ),
                         title: Text(

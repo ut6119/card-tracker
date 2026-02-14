@@ -60,8 +60,8 @@ class _MainScreenState extends State<MainScreen> {
 
   // 各タブの画面
   final List<Widget> _screens = const [
-    SnsScreen(title: 'ガチャガチャ', isGacha: true),
-    SnsScreen(title: 'ボンボンドロップ', isGacha: false),
+    SnsScreen(key: ValueKey('gacha'), title: 'ガチャガチャ', isGacha: true),
+    SnsScreen(key: ValueKey('bonbon'), title: 'ボンボンドロップ', isGacha: false),
   ];
 
   @override

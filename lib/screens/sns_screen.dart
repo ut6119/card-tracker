@@ -122,23 +122,23 @@ class _SnsScreenState extends State<SnsScreen> {
     
     // 地域でフィルタ
     posts = posts.where((post) {
-      final target = '${post.location ?? ''} ${post.storeName ?? ''} ${post.content}';
-      return _prefectureKeywords.any((keyword) => target.contains(keyword));
+      final target = _normalize('${post.location ?? ''} ${post.storeName ?? ''} ${post.content}');
+      return _prefectureKeywords.any((keyword) => target.contains(_normalize(keyword)));
     }).toList();
 
     // キーワードフィルタ（設定がある場合）
     if (_keywordFilters.isNotEmpty) {
       posts = posts.where((post) {
-        final target = '${post.content} ${post.storeName ?? ''} ${post.location ?? ''}';
-        return _keywordFilters.any((keyword) => target.contains(keyword));
+        final target = _normalize(_buildTarget(post));
+        return _keywordFilters.any((keyword) => target.contains(_normalize(keyword)));
       }).toList();
     }
 
     // 除外キーワード
     if (_excludeKeywordFilters.isNotEmpty) {
       posts = posts.where((post) {
-        final target = '${post.content} ${post.storeName ?? ''} ${post.location ?? ''}';
-        return !_excludeKeywordFilters.any((keyword) => target.contains(keyword));
+        final target = _normalize(_buildTarget(post));
+        return !_excludeKeywordFilters.any((keyword) => target.contains(_normalize(keyword)));
       }).toList();
     }
     
@@ -146,6 +146,7 @@ class _SnsScreenState extends State<SnsScreen> {
   }
 
   Future<void> _showKeywordDialog() async {
+    await _loadKeywords();
     final includeController = TextEditingController(
       text: _keywordFilters.join('\n'),
     );
@@ -227,6 +228,21 @@ class _SnsScreenState extends State<SnsScreen> {
         _excludeKeywordFilters = excludeKeywords;
       });
     }
+  }
+
+  String _buildTarget(SnsPost post) {
+    return [
+      post.content,
+      post.storeName ?? '',
+      post.location ?? '',
+      post.username,
+      post.postUrl,
+      post.productId,
+    ].join(' ');
+  }
+
+  String _normalize(String value) {
+    return value.toLowerCase().replaceAll(RegExp(r'\s+'), '');
   }
 
   @override

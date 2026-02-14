@@ -59,7 +59,7 @@ GACHA_BASE_KEYWORDS = [
 ]
 
 GACHA_CITY_KEYWORDS = [
-    f\"{term} {city}\"
+    f"{term} {city}"
     for city in OSAKA_HYOGO_CITIES
     for term in GACHA_BASE_KEYWORDS
 ]

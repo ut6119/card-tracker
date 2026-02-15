@@ -60,7 +60,6 @@ class _MainScreenState extends State<MainScreen> {
 
   // 各タブの画面
   final List<Widget> _screens = const [
-    SnsScreen(key: ValueKey('gacha'), title: 'ガチャガチャ', isGacha: true),
     SnsScreen(key: ValueKey('bonbon'), title: 'ボンボンドロップ', isGacha: false),
   ];
 
@@ -76,11 +75,6 @@ class _MainScreenState extends State<MainScreen> {
           });
         },
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'ガチャガチャ',
-          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.chat_bubble_outline),
             activeIcon: Icon(Icons.chat_bubble),

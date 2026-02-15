@@ -1,11 +1,11 @@
 {
-    "name": "シールトラッカー",
-    "short_name": "シールトラッカー",
+    "name": "ボンドロ情報",
+    "short_name": "ボンドロ情報",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#000000",
     "theme_color": "#000000",
-    "description": "シール販売情報を収集・表示するアプリ",
+    "description": "ボンボンドロップ情報を収集・表示するアプリ",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

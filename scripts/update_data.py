@@ -83,7 +83,7 @@ CITY_TO_PREF = {
 }
 
 X_REQUEST_DELAY_SECONDS = 0.6
-X_MAX_URLS_PER_KEYWORD = 5
+X_MAX_URLS_PER_KEYWORD = 100
 
 OUTPUT_DIR = Path(__file__).resolve().parents[1] / "data"
 

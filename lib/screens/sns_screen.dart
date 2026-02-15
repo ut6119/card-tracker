@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/sns_post.dart';
 import '../services/remote_data_service.dart';
 import '../services/keyword_settings_service.dart';
+import '../services/region_settings_service.dart';
 
 /// SNS画面
 /// X・Instagram・Web情報を表示（大阪・兵庫のみ）
@@ -24,16 +25,25 @@ class SnsScreen extends StatefulWidget {
 class _SnsScreenState extends State<SnsScreen> {
   List<SnsPost> _snsPosts = [];
   bool _isLoading = true;
-  static const String _fixedRegionLabel = '大阪・兵庫';
-  static const List<String> _prefectureKeywords = ['大阪', '大阪府', '兵庫', '兵庫県', '神戸', '姫路', '尼崎', '西宮', '芦屋', '明石', '宝塚'];
+  String _selectedRegion = RegionSettingsService.regions.first;
   List<String> _keywordFilters = [];
   List<String> _excludeKeywordFilters = [];
 
   @override
   void initState() {
     super.initState();
+    _loadRegion();
     _loadKeywords();
     _loadSnsPosts();
+  }
+
+  Future<void> _loadRegion() async {
+    final region = await RegionSettingsService.loadRegion();
+    if (mounted) {
+      setState(() {
+        _selectedRegion = region;
+      });
+    }
   }
 
   Future<void> _loadKeywords() async {
@@ -48,6 +58,41 @@ class _SnsScreenState extends State<SnsScreen> {
         _keywordFilters = keywords;
         _excludeKeywordFilters = excludeKeywords;
       });
+    }
+  }
+
+  Future<void> _showRegionDialog() async {
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('表示地域を選択'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: RegionSettingsService.regions.length,
+            itemBuilder: (context, index) {
+              final region = RegionSettingsService.regions[index];
+              return ListTile(
+                title: Text(region),
+                trailing: _selectedRegion == region
+                    ? const Icon(Icons.check, color: Colors.black)
+                    : null,
+                onTap: () => Navigator.pop(context, region),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    if (selected != null) {
+      await RegionSettingsService.saveRegion(selected);
+      if (mounted) {
+        setState(() {
+          _selectedRegion = selected;
+        });
+      }
     }
   }
 
@@ -118,7 +163,9 @@ class _SnsScreenState extends State<SnsScreen> {
     // 地域でフィルタ
     posts = posts.where((post) {
       final target = _normalize('${post.location ?? ''} ${post.storeName ?? ''} ${post.content}');
-      return _prefectureKeywords.any((keyword) => target.contains(_normalize(keyword)));
+      final regionKeywords =
+          RegionSettingsService.regionKeywords[_selectedRegion] ?? [];
+      return regionKeywords.any((keyword) => target.contains(_normalize(keyword)));
     }).toList();
 
     // キーワードフィルタ（設定がある場合）
@@ -248,6 +295,11 @@ class _SnsScreenState extends State<SnsScreen> {
         title: Text(widget.title),
         actions: [
           IconButton(
+            icon: const Icon(Icons.location_on),
+            onPressed: _showRegionDialog,
+            tooltip: '地域: $_selectedRegion',
+          ),
+          IconButton(
             icon: const Icon(Icons.tune),
             onPressed: _showKeywordDialog,
             tooltip: 'ワード設定',
@@ -271,7 +323,7 @@ class _SnsScreenState extends State<SnsScreen> {
                 const Icon(Icons.location_on, size: 16, color: Colors.grey),
                 const SizedBox(width: 4),
                 Text(
-                  '表示地域: $_fixedRegionLabel',
+                  '表示地域: $_selectedRegion',
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const Spacer(),

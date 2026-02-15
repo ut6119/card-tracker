@@ -21,7 +21,6 @@ class SnsScreen extends StatefulWidget {
 }
 
 class _SnsScreenState extends State<SnsScreen> {
-  SnsType? _selectedSnsType;
   List<SnsPost> _snsPosts = [];
   bool _isLoading = true;
   static const String _fixedRegionLabel = '大阪・兵庫';
@@ -114,12 +113,7 @@ class _SnsScreenState extends State<SnsScreen> {
   /// フィルター済みの投稿を取得
   List<SnsPost> get _filteredPosts {
     var posts = _snsPosts;
-    
-    // SNSタイプでフィルタ
-    if (_selectedSnsType != null) {
-      posts = posts.where((post) => post.type == _selectedSnsType).toList();
-    }
-    
+
     // 地域でフィルタ
     posts = posts.where((post) {
       final target = _normalize('${post.location ?? ''} ${post.storeName ?? ''} ${post.content}');
@@ -287,8 +281,6 @@ class _SnsScreenState extends State<SnsScreen> {
               ],
             ),
           ),
-          // SNSタイプフィルター
-          _buildSnsTypeFilter(),
           const Divider(height: 1),
 
           // 投稿リスト
@@ -317,51 +309,6 @@ class _SnsScreenState extends State<SnsScreen> {
     );
   }
 
-  /// SNSタイプフィルター
-  Widget _buildSnsTypeFilter() {
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          _buildFilterChip('すべて', null),
-          _buildFilterChip('X', SnsType.twitter),
-          _buildFilterChip('Instagram', SnsType.instagram),
-        ],
-      ),
-    );
-  }
-
-  /// フィルターチップ
-  Widget _buildFilterChip(String label, SnsType? type) {
-    final isSelected = _selectedSnsType == type;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (selected) {
-          setState(() {
-            _selectedSnsType = selected ? type : null;
-          });
-        },
-        backgroundColor: Colors.white,
-        selectedColor: Colors.black,
-        checkmarkColor: Colors.white,
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.white : Colors.black,
-          fontSize: 13,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: isSelected ? Colors.black : Colors.grey.shade300,
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// SNS投稿カード

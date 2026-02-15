@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/sns_post.dart';
 import '../services/remote_data_service.dart';
@@ -503,13 +504,20 @@ class _SnsPostCard extends StatelessWidget {
   Future<void> _openUrl(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
-      // Web版: 新しいタブで開く
-      // モバイル版: 外部ブラウザで開く
-      await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-        webOnlyWindowName: '_blank', // Webで新しいタブを開く
-      );
+      if (kIsWeb) {
+        // Web版: 新しいタブで開く（元画面はそのまま）
+        await launchUrl(
+          uri,
+          mode: LaunchMode.platformDefault,
+          webOnlyWindowName: '_blank',
+        );
+      } else {
+        // モバイル版: 外部ブラウザで開く
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+      }
     }
   }
 }

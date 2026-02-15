@@ -328,7 +328,6 @@ class _SnsScreenState extends State<SnsScreen> {
           _buildFilterChip('すべて', null),
           _buildFilterChip('X', SnsType.twitter),
           _buildFilterChip('Instagram', SnsType.instagram),
-          _buildFilterChip('Web', SnsType.other),
         ],
       ),
     );
